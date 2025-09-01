@@ -1,0 +1,10 @@
+flask>=2.2.0
+python-dotenv
+line-bot-sdk
+openai>=1.101.0
+gunicorn==20.1.0
+firebase-admin==6.0.1
+Werkzeug>=2.2.0
+gspread==5.12.4
+google-auth==2.29.0
+httpx>=0.25.0
