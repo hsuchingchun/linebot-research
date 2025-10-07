@@ -99,9 +99,9 @@ def webhook():
                 "from": "user"
             })
             
-            # 💡 檢查訊息計數是否達到 3
+            # 💡 檢查訊息計數是否達到 6
             new_message_count = message_count + 1
-            if new_message_count >= 3:
+            if new_message_count >= 6:
                 # 讀取對話歷史（最近 20 筆）
                 history_query = messages_collection_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(20)
                 history_docs = list(history_query.stream())
