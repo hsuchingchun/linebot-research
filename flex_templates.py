@@ -1,6 +1,10 @@
 from typing import List, Tuple, Dict, Any
 from linebot.v3.messaging.models import FlexMessage, FlexContainer
 
+
+
+
+
 # 初始投票
 def create_vote_flex_message(phase: str, bot_role: str) -> FlexMessage:
     """建立 Flex Message 讓群組成員進行初始投票。"""
@@ -80,71 +84,77 @@ def create_vote_flex_message(phase: str, bot_role: str) -> FlexMessage:
     )
 
 # 共識確認
-def create_consensus_check_message(phase: str,elapsed_time: str) -> FlexMessage:
+def create_consensus_check_message(phase: str, elapsed_time: str) -> FlexMessage:
     """建立 Flex Message 詢問團隊是否已達成共識。"""
-    if phase == 'warmup':
-        note=""
-    else:  # main
-        note = f"小提醒：我們的最終目標是向執行長推薦最合適的 CFO 人選。若團隊充分討論並成功選出最佳候選人，將可獲得額外報酬。",
-        
+    note_text = ""
+    if phase == 'main':
+        note_text = "小提醒：我們的最終目標是向執行長推薦最合適的 CFO 人選。若團隊充分討論並成功選出最佳候選人，將可獲得額外報酬。"
 
+    # 先建立一定會存在的元件
+    body_contents_list: List[Dict[str, Any]] = [
+        {
+            "type": "box",
+            "layout": "horizontal",
+            "margin": "md",
+            "contents": [
+                {"type": "text", "text": f"目前已討論時間：{elapsed_time}", "weight": "bold", "size": "lg", "color": "#0D47A1"},
+            ],
+        },
+        {"type": "separator", "margin": "md"},
+        {
+            "type": "text",
+            "text": "為了確保效率，我們可以來快速確認一下彼此的共識。",
+            "backgroundColor": "#E3F2FD",
+            "wrap": True,
+            "size": "md",
+            "color": "#333333",
+            "margin": "md",
+        },
+    ]
+
+    # 💡【修改】只有當 note_text 有內容時，才將其加入列表
+    if note_text:
+        body_contents_list.append({
+            "type": "text",
+            "text": note_text,
+            "wrap": True,
+            "size": "sm",
+            "color": "#7a7a7a",
+            "margin": "md",
+        })
+
+    # 最後加入按鈕區塊
+    body_contents_list.append({
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "sm",
+        "margin": "md",
+        "contents": [
+            {
+                "type": "button",
+                "style": "primary",
+                "height": "sm",
+                "margin": "md",
+                "color": "#1976D2",
+                "action": {"type": "message", "label": "✅ 已有共識", "text": "已有共識"},
+            },
+            {
+                "type": "button",
+                "style": "primary",
+                "height": "sm",
+                "margin": "md",
+                "color": "#a2a7ab",
+                "action": {"type": "message", "label": "💬 需要再討論", "text": "需要再討論"},
+            },
+        ],
+    })
+
+    # 將組合好的列表放入 body
     body_content: Dict[str, Any] = {
         "type": "box",
         "layout": "vertical",
         "spacing": "md",
-        "contents": [
-            {
-                "type": "box",
-                "layout": "horizontal",
-                "margin": "md",
-                "contents": [
-                    # {"type": "text", "text": "⏱️", "size": "lg", "flex": 0},
-                    {"type": "text", "text": f"目前已討論時間：{elapsed_time}", "weight": "bold", "size": "lg", "color": "#0D47A1"},
-                ],
-            },
-            {"type": "separator", "margin": "md"},
-            {
-                "type": "text",
-                "text": f"為了確保效率，我們可以來快速確認一下彼此的共識。",
-                "backgroundColor": "#E3F2FD",
-                "wrap": True,
-                "size": "md",
-                "color": "#333333",
-                "margin": "md",
-            },
-               {
-                "type": "text",
-                "text": note,
-                "wrap": True,
-                "size": "sm",
-                "color": "#7a7a7a",
-                "margin": "md",
-            },
-            {
-                "type": "box",
-                "layout": "vertical",
-                "spacing": "sm",
-                "margin": "md",
-                "contents": [
-                    {
-                        "type": "button",
-                        "style": "primary",
-                        "height": "sm",
-                        "margin": "md",
-                        "color": "#1976D2",
-                        "action": {"type": "message", "label": "✅ 已有共識", "text": "已有共識"},
-                    },
-                    {
-                        "type": "button",
-                        "style": "primary",
-                        "height": "sm",
-                        "margin": "md",
-                        "color": "#a2a7ab",
-                        "action": {"type": "message", "label": "💬 需要再討論", "text": "需要再討論"},
-                    },
-                ],
-            },
-        ],
+        "contents": body_contents_list,
     }
 
     bubble: Dict[str, Any] = {
@@ -157,6 +167,7 @@ def create_consensus_check_message(phase: str,elapsed_time: str) -> FlexMessage:
         alt_text="共識檢查",
         contents=FlexContainer.from_dict(bubble),
     )
+
 
 # 最終選擇
 def create_final_selection_message(phase: str) -> FlexMessage:
