@@ -2,7 +2,74 @@ from typing import List, Tuple, Dict, Any
 from linebot.v3.messaging.models import FlexMessage, FlexContainer
 
 
+# 職位確立
+def create_position_message() -> FlexMessage:
+    """建立 Flex Message 讓受試者選擇在實驗中的職位（行銷、營運、人資）。"""
+    title = "【職位選擇】確立團隊角色"
+    instruction = "請選擇你在公司擔任的職位"
+    
+    # 定義職位選項 (標籤, 觸發的訊息文字)
+    options = [
+        ("行銷長", "我的職位是行銷長"), 
+        ("營運長", "我的職位是營運長"), 
+        ("人資長", "我的職位是人資長")
+    ]
 
+    # 按鈕內容 (以 dict 形式定義 Flex 元件)
+    button_components: List[Dict[str, Any]] = [
+        {
+            "type": "button",
+            "style": "primary",
+            "height": "sm",
+            "margin": "md",
+            "color": "#1976D2",
+            "action": {
+                "type": "message",
+                "label": label,
+                "text": text,
+            },
+        }
+        for label, text in options
+    ]
+
+    body_content: Dict[str, Any] = {
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "md",
+        "contents": [
+            {"type": "text", "text": title, "weight": "bold", "size": "lg", "color": "#0D47A1", "align": "start"},
+            {"type": "separator", "margin": "md", "color": "#E0E0E0"},
+            {
+                "type": "box",
+                "layout": "vertical",
+                "margin": "lg",
+                "backgroundColor": "#E3F2FD",
+                "cornerRadius": "8px",
+                "paddingAll": "10px",
+                "contents": [
+                    {"type": "text", "text": instruction, "wrap": True, "size": "md", "color": "#333333"}
+                ],
+            },
+            {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "margin": "md",
+                "contents": button_components,
+            },
+        ],
+    }
+
+    bubble: Dict[str, Any] = {
+        "type": "bubble",
+        "styles": {"body": {"backgroundColor": "#FFFFFF"}},
+        "body": body_content,
+    }
+
+    return FlexMessage(
+        alt_text=f"{title} - 請點擊按鈕選擇您的職位",
+        contents=FlexContainer.from_dict(bubble),
+    )
 
 
 # 初始投票

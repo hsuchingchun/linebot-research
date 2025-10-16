@@ -23,7 +23,8 @@ import certifi
 from flex_templates import (
     create_vote_flex_message,
     create_consensus_check_message,
-    create_final_selection_message
+    create_final_selection_message,
+    create_position_message 
 )
 
 load_dotenv()
@@ -46,9 +47,11 @@ WARMUP_CONSENSUS_CHECK_TIMES = [m * 60 for m in WARMUP_CHECK_MINUTES]
 MAIN_CONSENSUS_CHECK_TIMES = [m * 60 for m in MAIN_CHECK_MINUTES]
 
 # 實驗時長
-WARMUP_DURATION_MINUTES = 2
+WARMUP_DURATION_MINUTES = 3
 MAIN_DURATION_MINUTES = 6
-TEAM_SIZE = 2
+TEAM_SIZE = 2 # 預設團隊大小，可根據實際情況調整
+POSITIONS_ALLOWED = ["行銷長", "營運長", "人資長"] # 允許的職位清單
+AI_REPLY_TURN = 3 # ai 會在幾則訊息後回覆
 
 # ====== Flask 和 Firebase 初始化 ======
 app = Flask(__name__)
@@ -91,6 +94,10 @@ def format_duration(td: timedelta) -> str:
 
 def get_remaining_time_text(start_time_dt: datetime, current_phase: str) -> str:
     total_duration = timedelta(minutes=get_phase_duration_minutes(current_phase))
+    # 💡 修正：如果 start_time_dt 為 None (暖身階段開始計時前)，則回傳等待計時的文字
+    if start_time_dt is None:
+        return "等待團隊確立職位後開始計時"
+
     if start_time_dt.tzinfo is None:
         start_time_dt = start_time_dt.replace(tzinfo=timezone.utc)
     elapsed_time = datetime.now(timezone.utc) - start_time_dt
@@ -101,6 +108,23 @@ def get_remaining_time_text(start_time_dt: datetime, current_phase: str) -> str:
     elif remaining_time.total_seconds() < 60:
          return f"⚠️ 討論進入倒數階段，時間剩餘 {remaining_text}"
     return f"我們時間還剩 {remaining_text}，仍有充裕的時間"
+
+# 除錯列印：印出目前實驗執行時間（經過與剩餘）
+def print_current_experiment_time(start_time_dt: datetime, current_phase: str) -> None:
+    try:
+        total_duration = timedelta(minutes=get_phase_duration_minutes(current_phase))
+        if not isinstance(start_time_dt, datetime):
+            print("⌛ 實驗時間：尚未開始計時")
+            return
+        if start_time_dt.tzinfo is None:
+            start_time_dt = start_time_dt.replace(tzinfo=timezone.utc)
+        elapsed = datetime.now(timezone.utc) - start_time_dt
+        remaining = total_duration - elapsed
+        elapsed_text = format_duration(elapsed)
+        remaining_text = format_duration(remaining)
+        print(f"⌛ 實驗時間：已過 {elapsed_text}，剩餘 {remaining_text}（階段：{current_phase}）")
+    except Exception:
+        pass
 
 def get_messages_collection_name(phase: str) -> str:
     return "warmup_messages" if phase == 'warmup' else "main_messages"
@@ -132,6 +156,7 @@ line_bot_api = MessagingApi(api_client)
 parser = WebhookParser(channel_secret)
 
 COMMAND_PATTERN = re.compile(r"@AI顧問 開始(暖身|正式)實驗 (.+)")
+POSITION_PATTERN = re.compile(r"^我的職位是(行銷長|營運長|人資長)$") # 支援『行銷長/營運長/人資長』
 VOTE_PATTERN = re.compile(r"^我選(玩桌遊|公益淨灘|包場看電影| Amy| Sally| Nancy)$")
 CONSENSUS_PATTERN = re.compile(r"^(已有共識|需要再討論)$")
 FINAL_VOTE_PATTERN = re.compile(r"^我們最終選擇 (【玩桌遊】|【公益淨灘】|【包場看電影】|Amy|Sally|Nancy)$")
@@ -174,28 +199,73 @@ def webhook():
                 consensus_votes_ref_to_delete = exp_doc_ref.collection("consensus_votes")
                 delete_collection(consensus_votes_ref_to_delete, 10)
 
-                # 2. 刪除這個階段對應的初始/最終投票紀錄，確保實驗乾淨
+                # 2. 刪除這個階段對應的初始/最終投票紀錄 (warmup_votes 或 main_votes)
                 votes_collection_to_delete_name = get_votes_collection_name(phase)
                 votes_collection_to_delete_ref = exp_doc_ref.collection(votes_collection_to_delete_name)
                 delete_collection(votes_collection_to_delete_ref, 10)
                 
                 # 重置實驗狀態文件
-                exp_doc_ref.set({
+                exp_data_to_set = {
                     "group_id": source_id, "bot_role": bot_role, "phase": phase,
-                    "start_time": now_utc, "status": "running",
-                    "message_count": 0, "votes_count": 0,
-                    "consensus_checks_sent_count": 0,
-                    "final_vote_sent": False,
+                    "status": "running", "message_count": 0, "votes_count": 0,
+                    "consensus_checks_sent_count": 0, "final_vote_sent": False,
                     "discussion_prompt_sent": False
-                })
+                }
                 
-                flex_message = create_vote_flex_message(phase, bot_role)
+                # 記錄活動開始時間
+                if phase == 'warmup':
+                    exp_data_to_set["warmup_start_time"] = now_utc
+                else:  # main
+                    exp_data_to_set["main_start_time"] = now_utc
+                
+                # 暖身階段需要先確立職位，正式階段直接開始
+                if phase == 'warmup':
+                    exp_data_to_set["positions_all_set"] = False
+                    exp_data_to_set["start_time"] = None # 暖身階段先不計時
+                    exp_data_to_set["team_size"] = TEAM_SIZE  
+                    message_to_send = create_position_message()
+                else:
+                    exp_data_to_set["positions_all_set"] = True
+                    exp_data_to_set["start_time"] = now_utc # 正式階段直接計時
+                    exp_data_to_set["team_size"] = TEAM_SIZE
+                    
+                    # 💡 修正職位複製邏輯：從 warmup_votes 複製 position 和 initial_choice 紀錄到 main_votes
+                    warmup_votes_ref = exp_doc_ref.collection(get_votes_collection_name('warmup'))
+                    main_votes_ref = exp_doc_ref.collection(get_votes_collection_name('main'))
+                    
+                    # 獲取暖身階段所有相關的投票資訊 (position 和 initial)
+                    warmup_docs_to_copy = list(warmup_votes_ref.where("vote_type", "in", ["position", "initial"]).stream())
+                    
+                    # 將資訊複製到 main_votes 集合中
+                    for doc in warmup_docs_to_copy:
+                        data = doc.to_dict()
+                        user_id_key = doc.id 
+                        
+                        # 創建要複製的資料結構，確保所有關鍵欄位都存在
+                        copy_data = {
+                            "user_id": user_id_key,
+                            "timestamp": data.get("timestamp"),
+                            "vote_type": data.get("vote_type"),
+                            "position": data.get("position", "未知職位"), # 確保複製 position
+                        }
+                        
+                        if data.get("vote_type") == "initial":
+                            copy_data["initial_choice"] = data.get("initial_choice") # 確保複製 initial_choice
+                        
+                        # 職位和初始投票資訊儲存到 main_votes 中
+                        # 這裡使用 set 即可，因為 main_votes 集合剛被清空
+                        main_votes_ref.document(user_id_key).set(copy_data)
+                    
+                    message_to_send = create_vote_flex_message(phase, bot_role)
+
+                exp_doc_ref.set(exp_data_to_set)
+
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
                         messages=[
                             TextSendMessage(text=f"【{experiment_type}實驗】開始\n我是你們的 AI 顧問，在過程中協助大家一起進行決策✨。"),
-                            flex_message
+                            message_to_send
                         ]
                     )
                 )
@@ -220,74 +290,179 @@ def webhook():
             current_phase = exp_data.get("phase", "main")
             current_role = exp_data.get("bot_role")
             
+            # 💡 判斷是否已開始計時 (即是否已設定 start_time)
+            start_time_dt = exp_data.get("start_time")
+            
+            # 取得當前階段的 votes 集合參考
             vote_collection_name = get_votes_collection_name(current_phase)
             votes_collection_ref = exp_doc_ref.collection(vote_collection_name)
-            all_vote_docs = list(votes_collection_ref.stream())
-            current_initial_votes_count = sum(1 for doc in all_vote_docs if doc.to_dict().get("vote_type", "initial") == "initial")
 
-            start_time_dt = exp_data.get("start_time")
-            duration = timedelta(seconds=0)
-            total_duration = timedelta(minutes=get_phase_duration_minutes(current_phase))
-            
             if isinstance(start_time_dt, datetime):
                 if start_time_dt.tzinfo is None:
                     start_time_dt = start_time_dt.replace(tzinfo=timezone.utc)
                 duration = datetime.now(timezone.utc) - start_time_dt
+                total_duration = timedelta(minutes=get_phase_duration_minutes(current_phase))
+            else:
+                # 暖身階段尚未確立職位，尚未計時
+                duration = timedelta(seconds=0)
+                total_duration = timedelta(seconds=0)
             
+            # 💡 只有在開始計時後，才進行時間相關的檢查
+            is_time_running = isinstance(start_time_dt, datetime)
+            
+            # 獲取投票計數 (用於共識檢查)
+            all_vote_docs = list(votes_collection_ref.stream())
+            current_initial_votes_count = sum(1 for doc in all_vote_docs if doc.to_dict().get("vote_type", "initial") == "initial")
+
             message_collection_name = get_messages_collection_name(current_phase)
             messages_collection_ref = exp_doc_ref.collection(message_collection_name)
 
-            # ====== 階段二：多時間點共識檢查介入 ======
-            if not exp_data.get("final_vote_sent"):
-                check_times = WARMUP_CONSENSUS_CHECK_TIMES if current_phase == 'warmup' else MAIN_CONSENSUS_CHECK_TIMES
-                checks_sent_count = exp_data.get("consensus_checks_sent_count", 0)
-                
-                if checks_sent_count < len(check_times):
-                    next_check_time = check_times[checks_sent_count]
-                    if duration.total_seconds() >= next_check_time and current_initial_votes_count >= TEAM_SIZE:
-                        try:
-                            line_bot_api.push_message(
-                                PushMessageRequest(
-                                    to=source_id,
-                                    messages=[create_consensus_check_message(current_phase, format_duration(duration))]
-                                )
-                            )
-                            exp_doc_ref.update({"consensus_checks_sent_count": checks_sent_count + 1})
-                            print(f"✅ 已發送第 {checks_sent_count + 1} 次共識檢查。")
-                        except Exception as e:
-                            print(f"❌ 發送共識檢查 Push Message 失敗: {e}")
+            # ====== 輔助函數：獲取用戶職位 ======
+            def get_user_position(user_id, votes_ref):
+                """從 votes 集合中獲取用戶的職位資訊。"""
+                # 職位資訊是以 user_id 為 document ID 儲存
+                user_position_doc = votes_ref.document(user_id).get()
+                if user_position_doc.exists:
+                    # 檢查 document 中是否有 position 欄位
+                    return user_position_doc.to_dict().get("position", "未知職位")
+                return "未知職位"
 
-            # ====== 階段三：時間到期觸發最終投票 (此階段只發送訊息，不停止計時) ======
-            if not exp_data.get("final_vote_sent") and duration >= total_duration:
-                initial_vote_status_text = ""
-                if current_initial_votes_count < TEAM_SIZE:
-                    initial_vote_status_text = f"\n⚠️ 注意：初始投票人數不足 ({current_initial_votes_count}/{TEAM_SIZE})，但討論時間已結束。"
+
+            # ====== 階段一 A：處理職位選擇 (僅限暖身階段，且尚未確立職位) ======
+            position_match = POSITION_PATTERN.match(msg_text)
+            
+            if current_phase == 'warmup' and not exp_data.get("positions_all_set") and position_match:
+                position_choice = position_match.group(1).strip()
                 
-                line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[
-                            TextSendMessage(text=f"🚨 時間到！實驗的 {get_phase_duration_minutes(current_phase)} 分鐘討論時間已結束，請團隊進行最終決策。{initial_vote_status_text}"),
-                            create_final_selection_message(current_phase)
-                        ]
+                # 💡 獲取實際團隊大小
+                actual_team_size = exp_data.get("team_size", TEAM_SIZE)
+
+                # 從投票記錄中檢查已選擇的職位
+                all_position_docs = list(votes_collection_ref.where("vote_type", "==", "position").stream())
+                
+                # 檢查職位是否已被選
+                chosen_positions = [doc.to_dict().get("position") for doc in all_position_docs]
+                
+                if position_choice in chosen_positions:
+                    print_current_experiment_time(start_time_dt, current_phase)
+                    line_bot_api.reply_message(
+                        ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"⚠️ {position_choice} 職位已被其他成員選走，請選擇其他職位。")])
                     )
-                )
-                exp_doc_ref.update({"final_vote_sent": True})
+                    messages_collection_ref.add({"user_id": user_id, "text": msg_text, "timestamp": datetime.now(timezone.utc).isoformat(), "from": "user"})
+                    return "OK"
+                
+                # 記錄用戶選擇的職位到 votes 集合
+                votes_collection_ref.document(user_id).set({
+                    "user_id": user_id, 
+                    "position": position_choice, 
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "vote_type": "position" # 標記為職位選擇
+                })
+
+                # 重新獲取投票記錄，計算已選擇職位的人數
+                all_position_docs_after = list(votes_collection_ref.where("vote_type", "==", "position").stream())
+                current_positions_count = len(all_position_docs_after)
+                
+                # 判斷是否所有成員都已選擇職位
+                if current_positions_count >= actual_team_size:
+                    # 所有人已選擇職位：觸發初始投票和計時
+                    now_utc = datetime.now(timezone.utc)
+                    
+                    # 1. 更新狀態：設為已確立職位，並開始計時
+                    exp_doc_ref.update({
+                        "positions_all_set": True,
+                        "start_time": now_utc # 這裡開始計時！
+                    })
+                    
+                    flex_message = create_vote_flex_message(current_phase, current_role)
+                    
+                    # 2. 回覆訊息：先提示實驗開始計時，再發送初始投票 Flex Message
+                    print_current_experiment_time(now_utc, current_phase) # 使用新的 start_time_dt 呼叫 print_current_experiment_time
+                    line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[
+                                TextSendMessage(text="🎉 團隊所有成員已確立職位，暖身實驗計時開始！"),
+                                TextSendMessage(text="現在請大家針對討論議題進行初始投票。"),
+                                flex_message 
+                            ]
+                        )
+                    )
+                else:
+                    # 尚未所有人選擇：回覆「還有幾個人未回覆」
+                    remaining = actual_team_size - current_positions_count
+                    print_current_experiment_time(start_time_dt, current_phase)
+                    line_bot_api.reply_message(
+                        ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"✅ 您已選擇 {position_choice}。目前 {current_positions_count} 位成員已確立職位，尚有 {remaining} 位待選擇。")])
+                    )
+                
                 messages_collection_ref.add({"user_id": user_id, "text": msg_text, "timestamp": datetime.now(timezone.utc).isoformat(), "from": "user"})
                 return "OK"
+
+
+            # 💡 只有在計時開始後，才執行所有時間相關的階段 (階段二、三)
+            if is_time_running:
+                # ====== 階段二：多時間點共識檢查介入 ======
+                if not exp_data.get("final_vote_sent"):
+                    check_times = WARMUP_CONSENSUS_CHECK_TIMES if current_phase == 'warmup' else MAIN_CONSENSUS_CHECK_TIMES
+                    checks_sent_count = exp_data.get("consensus_checks_sent_count", 0)
+                    
+                    if checks_sent_count < len(check_times):
+                        next_check_time = check_times[checks_sent_count]
+                        # 獲取實際團隊大小
+                        actual_team_size = exp_data.get("team_size", TEAM_SIZE)
+                        if duration.total_seconds() >= next_check_time and current_initial_votes_count >= actual_team_size:
+                            try:
+                                print_current_experiment_time(start_time_dt, current_phase)
+                                line_bot_api.push_message(
+                                    PushMessageRequest(
+                                        to=source_id,
+                                        messages=[create_consensus_check_message(current_phase, format_duration(duration))]
+                                    )
+                                )
+                                exp_doc_ref.update({"consensus_checks_sent_count": checks_sent_count + 1})
+                                print(f"✅ 已發送第 {checks_sent_count + 1} 次共識檢查。")
+                            except Exception as e:
+                                print(f"❌ 發送共識檢查 Push Message 失敗: {e}")
+
+                # ====== 階段三：時間到期觸發最終投票 (此階段只發送訊息，不停止計時) ======
+                if not exp_data.get("final_vote_sent") and duration >= total_duration:
+                    initial_vote_status_text = ""
+                    # 獲取實際團隊大小
+                    actual_team_size = exp_data.get("team_size", TEAM_SIZE)
+                    if current_initial_votes_count < actual_team_size:
+                        initial_vote_status_text = f"\n⚠️ 注意：初始投票人數不足 ({current_initial_votes_count}/{actual_team_size})，但討論時間已結束。"
+                    
+                    print_current_experiment_time(start_time_dt, current_phase)
+                    line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[
+                                TextSendMessage(text=f"🚨 時間到！實驗的 {get_phase_duration_minutes(current_phase)} 分鐘討論時間已結束，請團隊進行最終決策。{initial_vote_status_text}"),
+                                create_final_selection_message(current_phase)
+                            ]
+                        )
+                    )
+                    exp_doc_ref.update({"final_vote_sent": True})
+                    messages_collection_ref.add({"user_id": user_id, "text": msg_text, "timestamp": datetime.now(timezone.utc).isoformat(), "from": "user"})
+                    return "OK"
             
             # ====== 階段四：處理共識檢查回覆 ======
             consensus_match = CONSENSUS_PATTERN.match(msg_text)
             if consensus_match and not exp_data.get("final_vote_sent"):
+                # ... (您的階段四邏輯不變) ...
                 choice = consensus_match.group(1).strip() 
                 consensus_votes_ref = exp_doc_ref.collection("consensus_votes")
                 consensus_votes_ref.document(user_id).set({
                     "user_id": user_id, "choice": choice, "timestamp": datetime.now(timezone.utc).isoformat()
                 })
                 vote_docs_consensus = list(consensus_votes_ref.stream())
-                if len(vote_docs_consensus) >= TEAM_SIZE:
+                # 獲取實際團隊大小
+                actual_team_size = exp_data.get("team_size", TEAM_SIZE)
+                if len(vote_docs_consensus) >= actual_team_size:
                     all_consensus = all(doc.to_dict().get("choice") == "已有共識" for doc in vote_docs_consensus)
                     if all_consensus:
+                        print_current_experiment_time(start_time_dt, current_phase)
                         line_bot_api.reply_message(
                             ReplyMessageRequest(
                                 reply_token=event.reply_token,
@@ -299,11 +474,14 @@ def webhook():
                         )
                         exp_doc_ref.update({"final_vote_sent": True})
                     else:
+                        # 未達成全體『已有共識』，僅提示目前已回覆進度
+                        print_current_experiment_time(start_time_dt, current_phase)
+                        progress_text = f"目前看來部分成員建議繼續討論。 共有{len(vote_docs_consensus)} 位已回覆共識訊息，尚未全體一致。"
                         line_bot_api.reply_message(
-                            ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"目前看來部分成員建議繼續討論。 {get_remaining_time_text(start_time_dt, current_phase)}，請繼續交流意見。")])
+                            ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=progress_text)])
                         )
                 else:
-                    remaining_voters = TEAM_SIZE - len(vote_docs_consensus)
+                    remaining_voters = actual_team_size - len(vote_docs_consensus)
                     line_bot_api.reply_message(
                         ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"目前有 {len(vote_docs_consensus)} 位成員已確認共識，尚有 {remaining_voters} 位待回覆。")])
                     )
@@ -316,15 +494,30 @@ def webhook():
                 final_choice = final_vote_match.group(1).strip()
                 final_votes_ref = exp_doc_ref.collection(get_votes_collection_name(current_phase))
 
-                final_votes_ref.document(user_id).set({
+                # 從投票記錄中獲取該用戶的完整文件，以便保留 initial_choice 和 position
+                user_vote_doc = final_votes_ref.document(user_id).get()
+                current_vote_data = user_vote_doc.to_dict() if user_vote_doc.exists else {}
+                
+                # 記錄最終投票資訊，使用 merge=True
+                update_data = {
                     "final_choice": final_choice,
                     "timestamp_final": datetime.now(timezone.utc).isoformat(),
-                    "vote_type": "final"
-                }, merge=True)
+                    "vote_type": "final", # 更新為 final
+                    "user_id": user_id
+                }
+                # 保留 position 和 initial_choice 欄位（如果存在）
+                if "position" in current_vote_data:
+                    update_data["position"] = current_vote_data["position"]
+                if "initial_choice" in current_vote_data:
+                    update_data["initial_choice"] = current_vote_data["initial_choice"]
+
+                final_votes_ref.document(user_id).set(update_data, merge=True)
 
                 final_vote_docs = list(final_votes_ref.where("vote_type", "==", "final").stream())
                 
-                if len(final_vote_docs) >= TEAM_SIZE:
+                # 獲取實際團隊大小
+                actual_team_size = exp_data.get("team_size", TEAM_SIZE)
+                if len(final_vote_docs) >= actual_team_size:
                     choices = [doc.to_dict().get("final_choice") for doc in final_vote_docs]
                     is_unanimous = len(set(choices)) == 1
                     
@@ -341,19 +534,59 @@ def webhook():
                             ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=message)])
                         )
                         
-                        exp_doc_ref.update({
+                        # 記錄活動結束時間
+                        update_data = {
                             "status": "completed", 
                             "end_time": end_time,
                             "total_duration_seconds": total_experiment_duration.total_seconds(),
                             "total_duration_formatted": duration_formatted
-                        })
+                        }
+                        
+                        if current_phase == 'warmup':
+                            update_data["warmup_end_time"] = end_time
+                        else:  # main
+                            update_data["main_end_time"] = end_time
+                            
+                        exp_doc_ref.update(update_data)
                     else:
                         vote_counts = Counter(choices)
-                        line_bot_api.reply_message(
-                            ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"看起來團隊對於最終選擇尚未達成一致。投票結果：{dict(vote_counts)}。\n請團隊利用時間再次溝通。")])
-                        )
+                        print_current_experiment_time(start_time_dt, current_phase)
+                        
+                        # 檢查是否還有討論時間
+                        if duration < total_duration:
+                            # 還有時間，重置最終投票狀態，讓團隊繼續討論
+                            exp_doc_ref.update({
+                                "final_vote_sent": False,
+                                "consensus_checks_sent_count": 0  # 重置共識檢查次數
+                            })
+                            
+                            # 💡 關鍵修復：不刪除整個文件，只刪除 final_choice 和 vote_type 欄位
+                            # 使用 Firestore.DELETE_FIELD
+                            batch = db.batch()
+                            
+                            final_vote_docs_to_clear = final_votes_ref.where("vote_type", "==", "final").stream()
+                            for doc in final_vote_docs_to_clear:
+                                doc_ref = final_votes_ref.document(doc.id)
+                                batch.update(doc_ref, {
+                                    "final_choice": firestore.DELETE_FIELD,
+                                    "vote_type": firestore.DELETE_FIELD,
+                                    "timestamp_final": firestore.DELETE_FIELD
+                                })
+                            batch.commit()
+                            
+                            vote_result_text = "、".join([f"{choice}: {count} 票" for choice, count in vote_counts.items()])
+                            line_bot_api.reply_message(
+                                ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"看起來團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。\n還有討論時間，請團隊繼續溝通並重新達成共識。")])
+                            )
+                        else:
+                            # 時間已到，但未達成一致
+                            vote_result_text = "、".join([f"{choice}: {count} 票" for choice, count in vote_counts.items()])
+                            line_bot_api.reply_message(
+                                ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"時間已到，但團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。\n實驗結束。")])
+                            )
                 else:
-                    remaining_voters = TEAM_SIZE - len(final_vote_docs)
+                    remaining_voters = actual_team_size - len(final_vote_docs)
+                    print_current_experiment_time(start_time_dt, current_phase)
                     line_bot_api.reply_message(
                         ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"目前 {len(final_vote_docs)} 位成員已完成最終決策，尚有 {remaining_voters} 位待回覆。")])
                     )
@@ -363,42 +596,69 @@ def webhook():
             
             # ====== 階段六：處理初始投票/一般訊息 ======
             vote_match = VOTE_PATTERN.match(msg_text)
-            if vote_match:
+            
+            # 💡 關鍵變動：只有在 positions_all_set = True 且未到最終投票階段時，才允許初始投票
+            if vote_match and exp_data.get("positions_all_set") and not exp_data.get("final_vote_sent"):
+                
+                # 從投票記錄中獲取用戶職位 (以便保留)
+                user_position = get_user_position(user_id, votes_collection_ref)
+
                 if not exp_data.get("final_vote_sent"):
                     choice_text = vote_match.group(1).strip()
+                    
+                    # 💡 關鍵修復：使用 merge=True，並確保傳入 position，這樣可以將 'position' 狀態
+                    # 覆蓋為 'initial' 狀態，但保留 position 欄位和 user_id
                     votes_collection_ref.document(user_id).set({
                         "user_id": user_id, 
                         "initial_choice": choice_text, 
                         "timestamp": datetime.now(timezone.utc).isoformat(),
-                        # "source_text": msg_text,
-                        "vote_type": "initial"
-                    })
+                        "vote_type": "initial", # 這裡覆蓋為 initial
+                        "position": user_position # 記錄職位 (從原文件讀取後再寫入，確保不丟失)
+                    }, merge=True) 
                     
                     all_vote_docs_after_vote = list(votes_collection_ref.stream())
                     current_initial_votes_count_after_vote = sum(1 for doc in all_vote_docs_after_vote if doc.to_dict().get("vote_type", "initial") == "initial")
 
                     exp_doc_ref.update({"votes_count": current_initial_votes_count_after_vote})
                     
-                    if current_initial_votes_count_after_vote == TEAM_SIZE and not exp_data.get("discussion_prompt_sent"):
+                    # 獲取實際團隊大小
+                    actual_team_size = exp_data.get("team_size", TEAM_SIZE)
+                    
+                    if current_initial_votes_count_after_vote == actual_team_size and not exp_data.get("discussion_prompt_sent"):
+                        print_current_experiment_time(start_time_dt, current_phase)
                         line_bot_api.reply_message(
                             ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text="👏 團隊所有成員已完成初始投票！現在，請大家開始討論各自支持的理由，共同推進決策。")])
                         )
                         exp_doc_ref.update({"discussion_prompt_sent": True})
-                    elif current_initial_votes_count_after_vote < TEAM_SIZE:
-                        remaining_people = TEAM_SIZE - current_initial_votes_count_after_vote
+                    elif current_initial_votes_count_after_vote < actual_team_size:
+                        remaining_people = actual_team_size - current_initial_votes_count_after_vote
+                        print_current_experiment_time(start_time_dt, current_phase)
                         line_bot_api.reply_message(
                             ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"目前有 {current_initial_votes_count_after_vote} 位成員已完成初始投票 (仍有 {remaining_people} 位待投票)。")])
                         )
                     return "OK"
-
+            
             # 記錄所有一般訊息 (如果不是投票訊息)
             messages_collection_ref.add({"user_id": user_id, "text": msg_text, "timestamp": datetime.now(timezone.utc).isoformat(), "from": "user"})
             
-            # AI 回覆邏輯 (只有在時間未到、未進入最終投票、且初始投票完成時才觸發)
-            if not exp_data.get("final_vote_sent") and duration < total_duration and current_initial_votes_count >= TEAM_SIZE:
+            # ====== 檢查是否有人自行輸入「已有共識」======
+            # 💡 只有在計時開始後，才允許觸發共識檢查
+            if msg_text.strip() == "已有共識" and not exp_data.get("final_vote_sent") and is_time_running:
+                print_current_experiment_time(start_time_dt, current_phase)
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[create_consensus_check_message(current_phase, format_duration(duration))]
+                    )
+                )
+                return "OK"
+            
+            # AI 回覆邏輯：
+            actual_team_size = exp_data.get("team_size", TEAM_SIZE)
+            if is_time_running and not exp_data.get("final_vote_sent") and duration < total_duration and current_initial_votes_count >= actual_team_size:
                 message_count = exp_data.get("message_count", 0)
                 new_message_count = message_count + 1
-                if new_message_count >= 3:
+                if new_message_count >= AI_REPLY_TURN:
                     recent_messages = []
                     messages_docs = list(messages_collection_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(20).stream())
                     for msg_doc in reversed(messages_docs):
@@ -414,6 +674,7 @@ def webhook():
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                         "from": "assistant"
                     })
+                    print_current_experiment_time(start_time_dt, current_phase)
                     line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
