@@ -544,7 +544,6 @@ def webhook():
 
                         # 共識未達成次數
                         exp_doc_ref.update({"consensus_failed_count": firestore.Increment(1)})
-                        exp_doc_ref.update({"final_vote_sent": False})
                     
                 else:
                     # 情況三：尚未達到團隊人數
@@ -645,17 +644,17 @@ def webhook():
                              # 還有時間，重置最終投票狀態，讓團隊繼續討論
                             exp_doc_ref.update({
                                 "final_vote_sent": False,
-                                "consensus_checks_sent_count": 0  # 重置共識檢查次數
                             })
                             line_bot_api.reply_message(
                                 ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"看起來團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。\n{get_remaining_time_text(start_time_dt, current_phase)}請團隊繼續溝通並重新達成共識。")])
                             )
+                            delete_collection(exp_doc_ref.collection(get_consensus_collection_name(current_phase)),10)
                         else:
                            # 情況 B: 時間已到 (超時最終輪)
                             # 3. 回覆訊息：告知時間已到，但給予重新投票的機會，並發送 Flex Message
                             exp_doc_ref.update({
                                 "final_vote_sent": True,
-                                "consensus_checks_sent_count": TEAM_SIZE # ✅ 超時，設為最大值，禁用自動提醒
+                                # "consensus_checks_sent_count": TEAM_SIZE # ✅ 超時，設為最大值，禁用自動提醒
                             })
 
                             line_bot_api.reply_message(
