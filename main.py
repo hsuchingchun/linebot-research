@@ -42,7 +42,7 @@ AI_ROLE_MAPPING = {
 # 暖身實驗：在第 6 分鐘檢查一次
 WARMUP_CHECK_MINUTES = [1]
 # 正式實驗：在第 15 分鐘和第 20 分鐘各檢查一次
-MAIN_CHECK_MINUTES = [2,4]
+MAIN_CHECK_MINUTES = [1,2]
 
 # 轉換分秒
 WARMUP_CONSENSUS_CHECK_TIMES = [m * 60 for m in WARMUP_CHECK_MINUTES]
@@ -50,7 +50,7 @@ MAIN_CONSENSUS_CHECK_TIMES = [m * 60 for m in MAIN_CHECK_MINUTES]
 
 # 實驗時長
 WARMUP_DURATION_MINUTES = 2
-MAIN_DURATION_MINUTES = 5
+MAIN_DURATION_MINUTES = 3
 TEAM_SIZE = 2 # 預設團隊大小，可根據實際情況調整
 POSITIONS_ALLOWED = ["行銷長", "營運長", "人資長"] # 允許的職位清單
 AI_REPLY_TURN = 4 # ai 會在幾則訊息後回覆
@@ -542,10 +542,7 @@ def webhook():
 
                         # 共識未達成次數
                         exp_doc_ref.update({"consensus_failed_count": firestore.Increment(1)})
-                        exp_doc_ref.update({
-                                "final_vote_sent": False,
-                                "consensus_checks_sent_count": 0  # 重置共識檢查次數
-                            })
+                        exp_doc_ref.update({"final_vote_sent": False})
                     
                 else:
                     # 情況三：尚未達到團隊人數
