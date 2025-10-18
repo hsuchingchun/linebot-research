@@ -58,29 +58,43 @@ AI_REPLY_TURN = 4 # ai 會在幾則訊息後回覆
 # ====== Flask 和 Firebase 初始化 ======
 app = Flask(__name__)
 
-def get_firebase_credentials_from_env():
-    """從環境變數讀取 Firebase 服務帳號金鑰。"""
-    firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
-    if not firebase_credentials:
-        return None
-    try:
-        service_account_info = json.loads(firebase_credentials)
-        print("✅ 成功從環境變數讀取 Firebase 金鑰")
-        return credentials.Certificate(service_account_info)
-    except json.JSONDecodeError:
-        raise ValueError("FIREBASE_CREDENTIALS 環境變數格式錯誤，請確保它是單行且用單引號包覆的 JSON 字串。")
+# =====本地測試使用=====
+# def get_firebase_credentials_from_env():
+#     """從環境變數讀取 Firebase 服務帳號金鑰。"""
+#     firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
+#     if not firebase_credentials:
+#         return None
+#     try:
+#         service_account_info = json.loads(firebase_credentials)
+#         print("✅ 成功從環境變數讀取 Firebase 金鑰")
+#         return credentials.Certificate(service_account_info)
+#     except json.JSONDecodeError:
+#         raise ValueError("FIREBASE_CREDENTIALS 環境變數格式錯誤，請確保它是單行且用單引號包覆的 JSON 字串。")
 
+# if not firebase_admin._apps:
+#     try:
+#         firebase_cred = get_firebase_credentials_from_env()
+#         if firebase_cred:
+#             firebase_admin.initialize_app(firebase_cred)
+#             db = firestore.client()
+#         else:
+#             print("⚠️ 未找到 Firebase 憑證，Firestore 功能將無法使用。")
+#             db = None
+#     except Exception as e:
+#         print(f"❌ Firebase 初始化失敗: {e}")
+#         db = None
+
+# ====== GCP 適用 ======
 if not firebase_admin._apps:
     try:
-        firebase_cred = get_firebase_credentials_from_env()
-        if firebase_cred:
-            firebase_admin.initialize_app(firebase_cred)
-            db = firestore.client()
-        else:
-            print("⚠️ 未找到 Firebase 憑證，Firestore 功能將無法使用。")
-            db = None
+        # 💡 GCP 修正：在 GCP 環境中，Firestore 會自動使用服務帳號
+        # 移除依賴環境變數 FIREBASE_CREDENTIALS 的本地文件讀取邏輯
+        firebase_admin.initialize_app()
+        db = firestore.client()
+        print("✅ Firebase 已使用 Application Default Credentials 成功初始化")
     except Exception as e:
         print(f"❌ Firebase 初始化失敗: {e}")
+        # 如果在 GCP 上運行，但初始化失敗，應該拋出錯誤
         db = None
 
 # ====== 時間及階段輔助函數 ======
