@@ -531,6 +531,7 @@ def webhook():
                         # 情況二：未達成共識
                         print_current_experiment_time(start_time_dt, current_phase)
                         # 💡 確保這裡回覆的訊息是「已重新開始計數」
+
                         progress_text = (
                             f"目前尚未達成一致共識，看來部分成員建議繼續討論。{get_remaining_time_text(start_time_dt, current_phase)}"
                             f"請團隊利用時間再次溝通，若有共識，成員可輸入「已有共識」來進入最終決策。"
@@ -541,6 +542,10 @@ def webhook():
 
                         # 共識未達成次數
                         exp_doc_ref.update({"consensus_failed_count": firestore.Increment(1)})
+                        exp_doc_ref.update({
+                                "final_vote_sent": False,
+                                "consensus_checks_sent_count": 0  # 重置共識檢查次數
+                            })
                     
                 else:
                     # 情況三：尚未達到團隊人數
@@ -644,7 +649,7 @@ def webhook():
                                 "consensus_checks_sent_count": 0  # 重置共識檢查次數
                             })
                             line_bot_api.reply_message(
-                                ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"看起來團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。\n{get_remaining_time_text(start_time_dt, current_phase)}，請團隊繼續溝通並重新達成共識。")])
+                                ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"看起來團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。\n{get_remaining_time_text(start_time_dt, current_phase)}請團隊繼續溝通並重新達成共識。")])
                             )
                         else:
                            # 情況 B: 時間已到 (超時最終輪)
