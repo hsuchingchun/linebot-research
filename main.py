@@ -537,7 +537,7 @@ def webhook():
                         # 💡 確保這裡回覆的訊息是「已重新開始計數」
                         progress_text = (
                             f"目前尚未達成一致共識，看來部分成員建議繼續討論。{get_remaining_time_text(start_time_dt, current_phase)}"
-                            f"請團隊利用時間再次溝通，並可重新輸入「已有共識」或「需要再討論」來確認共識。"
+                            f"請團隊利用時間再次溝通，並可輸入「已有共識」或「需要再討論」來確認共識。"
                         )
                         line_bot_api.reply_message(
                             ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=progress_text)])
@@ -653,7 +653,7 @@ def webhook():
                             })
 
                             line_bot_api.reply_message(
-                                ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"時間已到，但團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。\n實驗已結束。")])
+                                ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"時間已到，但團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。")])
                             )
                 else:
                     remaining_voters = actual_team_size - len(final_vote_docs)
@@ -694,7 +694,8 @@ def webhook():
                     
                     # 獲取實際團隊大小
                     actual_team_size = exp_data.get("team_size", TEAM_SIZE)
-                    
+                    messages_collection_ref.add({"user_id": user_id, "text": msg_text, "timestamp": datetime.now(timezone.utc).isoformat(), "from": "user"})
+
                     if current_initial_votes_count_after_vote == actual_team_size and not exp_data.get("discussion_prompt_sent"):
                         print_current_experiment_time(start_time_dt, current_phase)
                         line_bot_api.reply_message(
