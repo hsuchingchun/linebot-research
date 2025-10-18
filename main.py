@@ -42,18 +42,18 @@ AI_ROLE_MAPPING = {
 # 暖身實驗：在第 1 分鐘檢查一次
 WARMUP_CHECK_MINUTES = [1]
 # 正式實驗：在第 2 分鐘和第 5 分鐘各檢查一次
-MAIN_CHECK_MINUTES = [2, 4]
+MAIN_CHECK_MINUTES = [0.5]
 
 # 轉換分秒
 WARMUP_CONSENSUS_CHECK_TIMES = [m * 60 for m in WARMUP_CHECK_MINUTES]
 MAIN_CONSENSUS_CHECK_TIMES = [m * 60 for m in MAIN_CHECK_MINUTES]
 
 # 實驗時長
-WARMUP_DURATION_MINUTES = 3
-MAIN_DURATION_MINUTES = 5
+WARMUP_DURATION_MINUTES = 2
+MAIN_DURATION_MINUTES = 1
 TEAM_SIZE = 2 # 預設團隊大小，可根據實際情況調整
 POSITIONS_ALLOWED = ["行銷長", "營運長", "人資長"] # 允許的職位清單
-AI_REPLY_TURN = 3 # ai 會在幾則訊息後回覆
+AI_REPLY_TURN = 4 # ai 會在幾則訊息後回覆
 
 # ====== Flask 和 Firebase 初始化 ======
 app = Flask(__name__)
@@ -220,7 +220,8 @@ def webhook():
                     "group_id": source_id, "bot_role": bot_role, "phase": phase,
                     "status": "running", "message_count": 0, "votes_count": 0,
                     "consensus_checks_sent_count": 0, "final_vote_sent": False,
-                    "discussion_prompt_sent": False
+                    "discussion_prompt_sent": False,"final_decision_count": 0,
+                    "consensus_reached_count":0,"consensus_failed_count":0
                 }
                 
                 # 記錄活動開始時間
@@ -432,6 +433,7 @@ def webhook():
                                 )
                                 exp_doc_ref.update({"consensus_checks_sent_count": checks_sent_count + 1})
                                 print(f"✅ 已發送第 {checks_sent_count + 1} 次共識檢查。")
+                                return "OK"
                             except Exception as e:
                                 print(f"❌ 發送共識檢查 Push Message 失敗: {e}")
 
@@ -459,6 +461,7 @@ def webhook():
                     
                     messages_collection_ref.add({"user_id": user_id, "text": msg_text, "timestamp": datetime.now(timezone.utc).isoformat(), "from": "user"})
                     # 注意：這裡保留 return "OK" 以強制流程隔離，依賴用戶發送新訊息。
+                    return "OK"
 
             
             # ====== 階段四：處理共識檢查回覆 ======
@@ -470,8 +473,6 @@ def webhook():
                 consensus_collection_name = get_consensus_collection_name(current_phase)
                 consensus_votes_ref = exp_doc_ref.collection(consensus_collection_name)
                 
-                # 💡 新增: 獲取共識投票歷史記錄集合的參考
-                consensus_history_ref = exp_doc_ref.collection(f"{consensus_collection_name}_history")
                 
                 # 獲取實際團隊大小
                 actual_team_size = exp_data.get("team_size", TEAM_SIZE)
@@ -497,25 +498,6 @@ def webhook():
                     
                     all_consensus = all(doc.to_dict().get("choice") == "已有共識" for doc in vote_docs_consensus)
                     
-                    # 1. 準備批量操作：將本次結果標記並移動到歷史記錄
-                    batch = db.batch()
-                    round_id = f"R{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}" # 建立唯一的回合 ID
-                    
-                    # 2. 備份和清除當前回合的投票
-                    for doc in vote_docs_consensus:
-                        data = doc.to_dict()
-                        data["round_id"] = round_id # 標記回合 ID
-                        data["unanimous"] = all_consensus
-                        
-                        # 備份到歷史記錄集合 (使用 round_id + user_id 作為文件 ID)
-                        history_doc_ref = consensus_history_ref.document(f"{round_id}_{doc.id}")
-                        batch.set(history_doc_ref, data)
-                        
-                        # 從當前回合計數集合中刪除
-                        batch.delete(doc.reference)
-                    
-                    batch.commit()
-                    
                     if all_consensus:
                         # 情況一：達成共識
                         print_current_experiment_time(start_time_dt, current_phase)
@@ -528,8 +510,8 @@ def webhook():
                                 ]
                             )
                         )
-                        # 🚨 關鍵修正：確保 exp_data 在內存中被更新
-                        exp_doc_ref.update({"final_vote_sent": True})
+                        # 🚨 關鍵修正：確保 exp_data 在內存中被更新、計算共識達成次數
+                        exp_doc_ref.update({"final_vote_sent": True,"consensus_reached_count": firestore.Increment(1)})
                         exp_data["final_vote_sent"] = True 
                     else:
                         # 情況二：未達成共識
@@ -537,11 +519,14 @@ def webhook():
                         # 💡 確保這裡回覆的訊息是「已重新開始計數」
                         progress_text = (
                             f"目前尚未達成一致共識，看來部分成員建議繼續討論。{get_remaining_time_text(start_time_dt, current_phase)}"
-                            f"請團隊利用時間再次溝通，並可輸入「已有共識」或「需要再討論」來確認共識。"
+                            f"請團隊利用時間再次溝通，若有共識，成員可輸入「已有共識」來進入最終決策。"
                         )
                         line_bot_api.reply_message(
                             ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=progress_text)])
                         )
+
+                        # 共識未達成次數
+                        exp_doc_ref.update({"consensus_failed_count": firestore.Increment(1)})
                     
                 else:
                     # 情況三：尚未達到團隊人數
@@ -549,7 +534,7 @@ def webhook():
                     line_bot_api.reply_message(
                         ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"目前有 {len(vote_docs_consensus)} 位成員已確認共識，尚有 {remaining_voters} 位待回覆。")])
                     )
-                
+                    
                 messages_collection_ref.add({"user_id": user_id, "text": msg_text, "timestamp": datetime.now(timezone.utc).isoformat(), "from": "user"})
                 return "OK" # 階段四結束
 
@@ -586,6 +571,9 @@ def webhook():
                 if len(final_vote_docs) >= actual_team_size:
                     choices = [doc.to_dict().get("final_choice") for doc in final_vote_docs]
                     is_unanimous = len(set(choices)) == 1
+
+                    # 在這裡增加最終決策次數 (只有當人數足夠時才算一次決策嘗試)
+                    exp_doc_ref.update({"final_decision_count": firestore.Increment(1)})
                     
                     if is_unanimous:
                         end_time = datetime.now(timezone.utc)
@@ -617,44 +605,52 @@ def webhook():
                     else:
                         vote_counts = Counter(choices)
                         print_current_experiment_time(start_time_dt, current_phase)
-                        
-                        # 檢查是否還有討論時間
-                        if duration < total_duration:
-                            # 還有時間，重置最終投票狀態，讓團隊繼續討論
-                            exp_doc_ref.update({
-                                "final_vote_sent": False,
-                                "consensus_checks_sent_count": 0  # 重置共識檢查次數
-                            })
-                            
-                            # 💡 關鍵修復：不刪除整個文件，只刪除 final_choice 和 vote_type 欄位
+                        # 1. 取得共識檢查次數列表，用於決定重置值
                             # 使用 Firestore.DELETE_FIELD
-                            batch = db.batch()
+                        batch = db.batch()
                             
-                            final_vote_docs_to_clear = final_votes_ref.where(filter=FieldFilter("vote_type", "==", "final")).stream()
-                            for doc in final_vote_docs_to_clear:
+                        final_vote_docs_to_clear = final_votes_ref.where(filter=FieldFilter("vote_type", "==", "final")).stream()
+                        for doc in final_vote_docs_to_clear:
                                 doc_ref = final_votes_ref.document(doc.id)
                                 batch.update(doc_ref, {
                                     "final_choice": firestore.DELETE_FIELD,
                                     "vote_type": firestore.DELETE_FIELD,
                                     "timestamp_final": firestore.DELETE_FIELD
                                 })
-                            batch.commit()
-                            
-                            vote_result_text = "、".join([f"{choice}: {count} 票" for choice, count in vote_counts.items()])
+                        batch.commit()
+                        
+                        # 檢查是否還有討論時間
+                        vote_result_text = "、".join([f"{choice}: {count} 票" for choice, count in vote_counts.items()])
+                        
+                        if duration < total_duration:
+                             # 情況 A: 還有時間，重置計數為 0，讓共識檢查繼續
+                             # 還有時間，重置最終投票狀態，讓團隊繼續討論
+                            exp_doc_ref.update({
+                                "final_vote_sent": False,
+                                "consensus_checks_sent_count": 0  # 重置共識檢查次數
+                            })
                             line_bot_api.reply_message(
                                 ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"看起來團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。\n{get_remaining_time_text(start_time_dt, current_phase)}，請團隊繼續溝通並重新達成共識。")])
                             )
                         else:
-                            # 🚨 關鍵修正 3: 時間已到，但未達成一致。設為 completed
-                            vote_result_text = "、".join([f"{choice}: {count} 票" for choice, count in vote_counts.items()])
-                            
+                           # 情況 B: 時間已到 (超時最終輪)
+                            # 3. 回覆訊息：告知時間已到，但給予重新投票的機會，並發送 Flex Message
                             exp_doc_ref.update({
-                                "status": "completed" 
+                                "final_vote_sent": True,
+                                "consensus_checks_sent_count": TEAM_SIZE # ✅ 超時，設為最大值，禁用自動提醒
                             })
 
                             line_bot_api.reply_message(
-                                ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=f"時間已到，但團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。")])
+                                ReplyMessageRequest(
+                                    reply_token=event.reply_token, 
+                                    messages=[
+                                        TextSendMessage(text=f"時間已到，但團隊對於最終選擇尚未達成一致。投票結果：{vote_result_text}。"),
+                                        TextSendMessage(text="請團隊立即進行最終輪投票，共同選出最終候選人。"), # 新增文字提示
+                                        create_final_selection_message(current_phase) # 發送 Flex Message
+                                    ]
+                                )
                             )
+                        return "OK"
                 else:
                     remaining_voters = actual_team_size - len(final_vote_docs)
                     print_current_experiment_time(start_time_dt, current_phase)
