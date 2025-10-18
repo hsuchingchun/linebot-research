@@ -217,11 +217,11 @@ def webhook():
                 # 💡 確保刪除所有共識相關記錄
                 consensus_votes_warmup_ref_to_delete = exp_doc_ref.collection(get_consensus_collection_name('warmup'))
                 delete_collection(consensus_votes_warmup_ref_to_delete, 10)
-                delete_collection(exp_doc_ref.collection(f"{get_consensus_collection_name('warmup')}_history"), 10)
+                # delete_collection(exp_doc_ref.collection(f"{get_consensus_collection_name('warmup')}_history"), 10)
 
                 consensus_votes_main_ref_to_delete = exp_doc_ref.collection(get_consensus_collection_name('main'))
                 delete_collection(consensus_votes_main_ref_to_delete, 10)
-                delete_collection(exp_doc_ref.collection(f"{get_consensus_collection_name('main')}_history"), 10)
+                # delete_collection(exp_doc_ref.collection(f"{get_consensus_collection_name('main')}_history"), 10)
 
                 
                 # 2. 刪除這個階段對應的初始/最終投票紀錄 (warmup_votes 或 main_votes)
@@ -539,6 +539,8 @@ def webhook():
                         line_bot_api.reply_message(
                             ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text=progress_text)])
                         )
+
+                        delete_collection(exp_doc_ref.collection(get_consensus_collection_name(current_phase)),10)
 
                         # 共識未達成次數
                         exp_doc_ref.update({"consensus_failed_count": firestore.Increment(1)})
