@@ -19,4 +19,4 @@ COPY . .
 EXPOSE 8080
 
 # 啟動 Flask 應用 (確保您已在 requirements.txt 中包含 gunicorn)
-CMD ["gunicorn", "-b", "0.0.0.0:${PORT}", "main:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "main:app"]
