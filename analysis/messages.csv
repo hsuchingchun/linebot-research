@@ -1,0 +1,53 @@
+﻿from,text,timestamp,user_id,group_id
+user,我們最終選擇 Sally,2025-10-19T08:01:41.926436+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Caa0521935a61753527409f80d856e2cb
+user,那選 Amy 的原因有什麼，我這邊的資料他是會遲到的人我覺得不適合,2025-10-19T07:59:57.000241+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Caa0521935a61753527409f80d856e2cb
+user,需要再討論,2025-10-19T07:59:21.934271+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Caa0521935a61753527409f80d856e2cb
+user,amy 有擔任過會計事務所分析師，也在公司擔任很多植物,2025-10-19T08:00:12.810642+00:00,Ue8431db70845c091c2afe3cdc8b79265,Caa0521935a61753527409f80d856e2cb
+user,Sally 有在國外工作的經驗,2025-10-19T07:58:50.549904+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Caa0521935a61753527409f80d856e2cb
+user,需要再討論,2025-10-19T08:01:05.057194+00:00,Ue8431db70845c091c2afe3cdc8b79265,Caa0521935a61753527409f80d856e2cb
+user,nancy 好像還沒討論到，他有完成過領導課程,2025-10-19T08:01:25.702894+00:00,Ue8431db70845c091c2afe3cdc8b79265,Caa0521935a61753527409f80d856e2cb
+user,需要再討論,2025-10-19T08:01:07.486869+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Caa0521935a61753527409f80d856e2cb
+user,我們最終選擇 Amy,2025-10-19T08:01:32.617574+00:00,Ue8431db70845c091c2afe3cdc8b79265,Caa0521935a61753527409f80d856e2cb
+user,我選 Sally,2025-10-19T07:58:25.802346+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Caa0521935a61753527409f80d856e2cb
+user,我們最終選擇 Sally,2025-10-19T08:01:44.134798+00:00,Ue8431db70845c091c2afe3cdc8b79265,Caa0521935a61753527409f80d856e2cb
+user,需要再討論,2025-10-19T07:59:19.339530+00:00,Ue8431db70845c091c2afe3cdc8b79265,Caa0521935a61753527409f80d856e2cb
+user,我選 Amy,2025-10-19T07:58:28.684175+00:00,Ue8431db70845c091c2afe3cdc8b79265,Caa0521935a61753527409f80d856e2cb
+user,Nancy 的語文能力不錯，但缺少實際國際專案。,2025-10-18T10:17:13.199071+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,已有共識,2025-10-18T10:16:37.173779+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,Amy 的團隊合作表現很好。,2025-10-18T10:17:35.701173+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我們最終選擇 Amy,2025-10-18T10:17:04.491078+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我們最終選擇 Amy,2025-10-18T10:15:32.350173+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,已有共識,2025-10-18T10:17:02.358283+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,Nancy 雖然沒帶過大團隊，但她願意學。,2025-10-18T10:16:13.822079+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我記得 Sally 曾負責海外投資案，但結果不太理想。,2025-10-18T10:15:04.398946+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+assistant,"整理至目前討論，大家已經提到：
+- Amy 具備開放的領導風格，能鼓勵團隊成員表達想法。
+- Sally 在領導上較為保守，且曾負責海外投資案但成效不佳。
+- Nancy 雖然缺乏高層經驗，但學習能力強且願意聽取團隊意見。
+
+目前針對「領導合作」、「國際視野」部分有初步討論，但像「財務專業」、「個人特質」等面向，還沒有太多資訊。是否還需要考量候選人在財務專業或壓力下決策的表現？還有沒有成員知道 Amy、Sally 或 Nancy 在這些方面的具體例子？",2025-10-18T10:15:10.440881+00:00,AI_ASSISTANT,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,需要再討論,2025-10-18T10:15:59.761948+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我選 Amy,2025-10-18T10:14:34.398331+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我們最終選擇 Amy,2025-10-18T10:17:38.684583+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,Sally 也有海外經驗，只是主要在亞洲市場。,2025-10-18T10:16:53.750359+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,Sally 的財務能力真的很強。,2025-10-18T10:17:19.146477+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+assistant,"目前討論摘要如下：
+- 小組多次表示已有共識，並曾兩度提及最終選擇 Amy，也有一次提出選擇 Sally。
+- Amy 被認為擅長帶領年輕團隊，激勵能力強，且領導風格開放，鼓勵團隊表達。
+- Sally 擁有亞洲市場的海外經驗，領導風格較保守，海外投資案成效不佳。
+- Nancy 學習力佳、願意聽意見，語文能力不錯，但缺乏高層與國際專案經驗。
+
+目前針對「領導合作」與「國際視野」面向已討論較多，但「財務專業」細節與「個人特質」在壓力下的表現仍較少資訊。是否還需要補充候選人在財務專業或抗壓性方面的具體經驗？還有沒有成員能分享 Amy 或 Sally 在這些領域的表現？",2025-10-18T10:17:18.969991+00:00,AI_ASSISTANT,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,相較之下，Amy 在帶團隊時比較開放，鼓勵成員表達想法。,2025-10-18T10:14:59.823083+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我覺得 Sally 的領導風格偏保守，可能不太適合快速變動的環境。,2025-10-18T10:14:56.298759+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我們最終選擇 Sally,2025-10-18T10:16:40.453589+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,已有共識,2025-10-18T10:16:38.753537+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我選 Sally,2025-10-18T10:14:37.234382+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,Nancy 雖然缺乏高層經驗，但她學習速度快，也很願意聽取意見。,2025-10-18T10:14:52.305633+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我們最終選擇 Amy,2025-10-18T10:17:48.566136+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,已有共識,2025-10-18T10:16:58.623136+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,已有共識,2025-10-18T10:15:57.086288+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,已有共識,2025-10-18T10:15:23.933343+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,Amy 擅長帶年輕團隊，很懂激勵。,2025-10-18T10:16:07.950759+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,已有共識,2025-10-18T10:15:29.498626+00:00,Ue5a743606bcf71ea70624e8f1f5fbfd8,Cea0e2d7d140def9ce5c67cb8ed1fcee4
+user,我們最終選擇 Amy,2025-10-18T10:17:46.325442+00:00,Ue8431db70845c091c2afe3cdc8b79265,Cea0e2d7d140def9ce5c67cb8ed1fcee4

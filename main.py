@@ -223,6 +223,18 @@ def webhook():
                 delete_collection(consensus_votes_main_ref_to_delete, 10)
                 # delete_collection(exp_doc_ref.collection(f"{get_consensus_collection_name('main')}_history"), 10)
 
+                # 取得群組名稱
+                group_name = source_id # 預設值為 group_id
+                try:
+                    # 只有 group_id 存在時才嘗試獲取
+                    if getattr(source, 'group_id', None):
+                        group_summary = line_bot_api.get_group_summary(source_id)
+                        group_name = group_summary.group_name
+                        print(f"✅ 成功獲取群組名稱: {group_name}")
+                    else:
+                        group_name = "Room Chat" # 如果是在 Room 中，給予不同名稱
+                except Exception as e:
+                    print(f"⚠️ 無法獲取群組名稱: {e}。將使用 group_id 作為名稱。")    
                 
                 # 2. 刪除這個階段對應的初始/最終投票紀錄 (warmup_votes 或 main_votes)
                 votes_collection_to_delete_name = get_votes_collection_name(phase)
@@ -231,7 +243,7 @@ def webhook():
                 
                 # 重置實驗狀態文件
                 exp_data_to_set = {
-                    "group_id": source_id, "bot_role": bot_role, "phase": phase,
+                    "group_id": source_id,"group_name": group_name, "bot_role": bot_role, "phase": phase,
                     "status": "running", "message_count": 0, "votes_count": 0,
                     "consensus_checks_sent_count": 0, "final_vote_sent": False,
                     "discussion_prompt_sent": False,"final_decision_count": 0,
@@ -294,7 +306,7 @@ def webhook():
                         ]
                     )
                 )
-                print(f"啟動【{phase}實驗】 組別: {input_role_code} 角色: {bot_role}")
+                print(f"啟動【{phase}實驗】 組別: {input_role_code} 角色: {bot_role} 群組: {group_name}")
                 return "OK"
 
             # 取得當前實驗狀態
