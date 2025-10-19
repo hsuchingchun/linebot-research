@@ -21,6 +21,6 @@ Dockerfile
 .dockerignore
 
 #排除__pycache__等編譯檔案
-
+__pycache__
 pycache/
 *.pyc
