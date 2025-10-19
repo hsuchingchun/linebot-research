@@ -1,0 +1,26 @@
+#排除所有與部署運行無關的檔案和資料夾
+
+#排除 Python 虛擬環境
+
+venv/
+.venv/
+
+#排除本地開發設定
+
+.env
+.gitignore
+.git/
+
+#排除您的分析腳本資料夾
+
+analysis/
+
+#排除 Docker 相關文件本身（可選，但推薦）
+
+Dockerfile
+.dockerignore
+
+#排除__pycache__等編譯檔案
+
+pycache/
+*.pyc
