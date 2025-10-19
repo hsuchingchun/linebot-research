@@ -52,7 +52,7 @@ MAIN_CONSENSUS_CHECK_TIMES = [m * 60 for m in MAIN_CHECK_MINUTES]
 WARMUP_DURATION_MINUTES = 2
 MAIN_DURATION_MINUTES = 3
 TEAM_SIZE = 2 # 預設團隊大小，可根據實際情況調整
-POSITIONS_ALLOWED = ["行銷長", "營運長", "人資長"] # 允許的職位清單
+POSITIONS_ALLOWED = ["人資長", "營運長", "行銷長"] # 允許的職位清單
 AI_REPLY_TURN = 4 # ai 會在幾則訊息後回覆
 
 # ====== Flask 和 Firebase 初始化 ======
