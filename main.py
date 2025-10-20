@@ -39,21 +39,21 @@ AI_ROLE_MAPPING = {
     "D組": "無介入AI",
 }
 
-# 暖身實驗：在第 6 分鐘檢查一次
-WARMUP_CHECK_MINUTES = [1]
+# 暖身實驗：在第 5 分鐘檢查一次
+WARMUP_CHECK_MINUTES = [5]
 # 正式實驗：在第 15 分鐘和第 20 分鐘各檢查一次
-MAIN_CHECK_MINUTES = [1,2]
+MAIN_CHECK_MINUTES = [15,20]
 
 # 轉換分秒
 WARMUP_CONSENSUS_CHECK_TIMES = [m * 60 for m in WARMUP_CHECK_MINUTES]
 MAIN_CONSENSUS_CHECK_TIMES = [m * 60 for m in MAIN_CHECK_MINUTES]
 
 # 實驗時長
-WARMUP_DURATION_MINUTES = 2
-MAIN_DURATION_MINUTES = 3
-TEAM_SIZE = 2 # 預設團隊大小，可根據實際情況調整
+WARMUP_DURATION_MINUTES = 10
+MAIN_DURATION_MINUTES = 35
+TEAM_SIZE = 3 # 預設團隊大小，可根據實際情況調整
 POSITIONS_ALLOWED = ["人資長", "營運長", "行銷長"] # 允許的職位清單
-AI_REPLY_TURN = 4 # ai 會在幾則訊息後回覆
+AI_REPLY_TURN = 6 # ai 會在幾則訊息後回覆
 
 # ====== Flask 和 Firebase 初始化 ======
 app = Flask(__name__)
