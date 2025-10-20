@@ -41,8 +41,8 @@ AI_ROLE_MAPPING = {
 
 # 暖身實驗：在第 5 分鐘檢查一次
 WARMUP_CHECK_MINUTES = [5]
-# 正式實驗：在第 15 分鐘和第 20 分鐘各檢查一次
-MAIN_CHECK_MINUTES = [15,20]
+# 正式實驗：在第 15 分鐘和第 30 分鐘各檢查一次
+MAIN_CHECK_MINUTES = [15,30]
 
 # 轉換分秒
 WARMUP_CONSENSUS_CHECK_TIMES = [m * 60 for m in WARMUP_CHECK_MINUTES]
