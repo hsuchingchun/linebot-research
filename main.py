@@ -51,7 +51,7 @@ MAIN_CONSENSUS_CHECK_TIMES = [m * 60 for m in MAIN_CHECK_MINUTES]
 # 實驗時長
 WARMUP_DURATION_MINUTES = 3
 MAIN_DURATION_MINUTES = 8
-TEAM_SIZE = 3 # 預設團隊大小，可根據實際情況調整
+TEAM_SIZE = 2 # 預設團隊大小，可根據實際情況調整
 POSITIONS_ALLOWED = ["人資長", "營運長", "行銷長"] # 允許的職位清單
 AI_REPLY_TURN = 4 # ai 會在幾則訊息後回覆
 
