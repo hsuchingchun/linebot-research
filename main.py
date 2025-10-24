@@ -33,25 +33,25 @@ load_dotenv()
 from prompt import ask_assistant_with_role
 
 AI_ROLE_MAPPING = {
-    "A組": "混合型AI",
-    "B組": "整合型AI",
-    "C組": "探究型AI",
-    "D組": "無介入AI",
+    "吧": "混合型AI",
+    "喔": "整合型AI",
+    "了": "探究型AI",
+    "囉": "無介入AI",
 }
 
 # 暖身實驗：在第 4 分鐘檢查一次
-WARMUP_CHECK_MINUTES = [1]
+WARMUP_CHECK_MINUTES = [4]
 # 正式實驗：在第 15 分鐘和第 30 分鐘各檢查一次
-MAIN_CHECK_MINUTES = [4,6]
+MAIN_CHECK_MINUTES = [15,30]
 
 # 轉換分秒
 WARMUP_CONSENSUS_CHECK_TIMES = [m * 60 for m in WARMUP_CHECK_MINUTES]
 MAIN_CONSENSUS_CHECK_TIMES = [m * 60 for m in MAIN_CHECK_MINUTES]
 
 # 實驗時長
-WARMUP_DURATION_MINUTES = 3
-MAIN_DURATION_MINUTES = 8
-TEAM_SIZE = 2 # 預設團隊大小，可根據實際情況調整
+WARMUP_DURATION_MINUTES = 8
+MAIN_DURATION_MINUTES = 35
+TEAM_SIZE = 3 # 預設團隊大小3，可根據實際情況調整
 POSITIONS_ALLOWED = ["人資長", "營運長", "行銷長"] # 允許的職位清單
 AI_REPLY_TURN = 4 # ai 會在幾則訊息後回覆
 
@@ -175,7 +175,7 @@ api_client = ApiClient(configuration)
 line_bot_api = MessagingApi(api_client)
 parser = WebhookParser(channel_secret)
 
-COMMAND_PATTERN = re.compile(r"@AI顧問 開始(暖身|正式)實驗 (.+)")
+COMMAND_PATTERN = re.compile(r"@AI顧問 開始(暖身|正式)實驗(.+)")
 POSITION_PATTERN = re.compile(r"^我的職位是(行銷長|營運長|人資長)$") # 支援『行銷長/營運長/人資長』
 VOTE_PATTERN = re.compile(r"^我選(玩桌遊|公益淨灘|包場看電影| Amy| Sally| Nancy)$")
 CONSENSUS_PATTERN = re.compile(r"^(已有共識|需要再討論)$")
@@ -314,7 +314,7 @@ def webhook():
             exp_doc = exp_doc_ref.get()
             if not exp_doc.exists:
                 line_bot_api.reply_message(
-                    ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text="請您先輸入指令來啟動新的實驗流程 (例如: @AI顧問 開始暖身/正式實驗 組別)。")])
+                    ReplyMessageRequest(reply_token=event.reply_token, messages=[TextSendMessage(text="Hi!我是你們的 AI 顧問。請先輸入指令來啟動。")])
                 )
                 return "OK"
 
