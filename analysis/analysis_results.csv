@@ -1,4 +1,0 @@
-﻿group_id,group_name,bot_role,integration,inquiry,objective_quality,initial_preference,role_consistency,total_discussion_time,speaking_turns,final_decision_attempts,consensus_ratio,speaking_balance_std
-Caa0521935a61753527409f80d856e2cb,決策群組 B0,整合型AI,Y,N,0,0,1,,13,0,0.0,0.030120481927710857
-Cc458774f24ed0d9e4e2bbfe31489a38e,無介入 AI 測試,無介入AI,N,N,0,0,0,,0,0,0.0,0.0
-Cea0e2d7d140def9ce5c67cb8ed1fcee4,,混合型AI,Y,Y,0,0,1,198.470716,28,5,0.75,0.2287017017610155

@@ -1,0 +1,3 @@
+﻿group_id,group_name,bot_role,integration,inquiry,shared_info_mention_count,unshared_info_mention_count,unshared_info_ratio
+C3314c7abc2bab88fa8e4d57883908b78,決策群組 A0 (test),混合型AI,Y,Y,2,2,0.1111111111111111
+C3f3be906a481759b8f5c07c45e317fce,探究型 AI 測試,探究型AI,N,Y,0,0,0.0

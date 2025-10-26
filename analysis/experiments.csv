@@ -1,4 +1,0 @@
-﻿group_id,discussion_prompt_sent,start_time,warmup_start_time,team_size,consensus_reached_count,votes_count,final_decision_count,group_name,consensus_checks_sent_count,final_vote_sent,status,bot_role,positions_all_set,message_count,consensus_failed_count,phase,total_duration_formatted,main_start_time,end_time,total_duration_seconds,main_end_time
-Caa0521935a61753527409f80d856e2cb,False,,2025-10-19T16:59:30.461694+00:00,2,0,0,0,決策群組 B0,0,False,running,整合型AI,False,0,0,warmup,,,,,
-Cc458774f24ed0d9e4e2bbfe31489a38e,True,2025-10-19T17:00:40.793550+00:00,2025-10-19T17:00:24.970391+00:00,2,0,2,0,無介入 AI 測試,0,False,running,無介入AI,True,0,0,warmup,,,,,
-Cea0e2d7d140def9ce5c67cb8ed1fcee4,True,2025-10-18T10:14:29.965158+00:00,,2,3,2,5,,2,True,completed,混合型AI,True,1,1,main,03:18,2025-10-18T10:14:29.965158+00:00,2025-10-18T10:17:48.435874+00:00,198.470716,2025-10-18T10:17:48.435874+00:00

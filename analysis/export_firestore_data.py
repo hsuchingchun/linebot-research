@@ -115,7 +115,7 @@ def flatten_data_for_csv(all_data):
         for message_record in exp_data.get('main_messages_data', []):
             message_record['group_id'] = group_id # 加入關聯 ID
             message_record['bot_role'] = bot_role
-            vote_record['group_name'] = group_name
+            message_record['group_name'] = group_name
             all_messages.append(message_record)
             
         # 移除巢狀資料，準備主實驗表的數據
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     print("🚀 開始從 Firestore 匯出實驗數據...")
     
     # 步驟 1: 建立輸出資料夾
-    output_dir = 'analysis'
+    output_dir = 'analysis/file'
     os.makedirs(output_dir, exist_ok=True)
     print(f"📂 輸出目錄 '{output_dir}' 已準備就緒。")
 

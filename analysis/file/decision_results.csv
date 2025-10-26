@@ -1,0 +1,6 @@
+﻿group_id,group_name,bot_role,integration,inquiry,objective_quality,initial_preference,total_discussion_time,total_discussion_cycles,final_decision_attempts,consensus_ratio,ai_average_utterance_length,human_average_utterance_length,human_contribution_balance_cv
+C3314c7abc2bab88fa8e4d57883908b78,決策群組 A0 (test),混合型AI,Y,Y,0,1,1187.366163,4,1,0.5,325.5,30.243243243243242,0.16769788812263037
+C3f3be906a481759b8f5c07c45e317fce,探究型 AI 測試,探究型AI,N,Y,0,0,80.040642,2,1,1.0,72.5,16.214285714285715,0.788546255506608
+Cc458774f24ed0d9e4e2bbfe31489a38e,無介入 AI 測試,無介入AI,N,N,0,0,195.510778,4,3,0.5,55.25,18.20689655172414,0.8598484848484849
+Cea0e2d7d140def9ce5c67cb8ed1fcee4,混合型 AI 測試,混合型AI,Y,Y,0,0,214.946584,2,3,1.0,201.5,18.65,0.8820375335120644
+Cfa78e0a4b7e9fb4bf8963e0621ea3208,整合型 AI 測試,整合型AI,Y,N,0,0,72.087829,2,1,1.0,163.5,18.0,0.8222222222222222
