@@ -87,7 +87,7 @@ def sanitize_filename(name):
 
 def create_precoded_worksheets():
     
-    input_file = 'analysis/messages.csv'
+    input_file = 'analysis/file/messages.csv'
     output_dir = 'analysis/coding_worksheets'
 
     # 1. 建立輸出資料夾
@@ -116,29 +116,30 @@ def create_precoded_worksheets():
         if col not in df.columns:
             df[col] = 0
 
-    # 5. (來自腳本一) 執行「關鍵詞自動預編碼」
-    print("🤖 正在執行關鍵詞自動預編碼 (First Pass)...")
-    coded_count = 0
-    for index, row in df.iterrows():
-        # 只編碼人類的發言
-        if row['from'] == 'user':
-            text = str(row['text']).lower() # 轉換為小寫以便比對
+    # 暫時關閉預先編碼
+    # # 5. (來自腳本一) 執行「關鍵詞自動預編碼」
+    # print("🤖 正在執行關鍵詞自動預編碼 (First Pass)...")
+    # coded_count = 0
+    # for index, row in df.iterrows():
+    #     # 只編碼人類的發言
+    #     if row['from'] == 'user':
+    #         text = str(row['text']).lower() # 轉換為小寫以便比對
             
-            for code, keywords in KEYWORD_MAP.items():
-                for keyword in keywords:
-                    if keyword.lower() in text:
-                        # 基礎否定詞檢查
-                        if "不" not in text and "沒有" not in text:
-                            df.at[index, code] = 1
-                            coded_count += 1
-                            break # 找到一個 code 的匹配就跳到下一個 code
+    #         for code, keywords in KEYWORD_MAP.items():
+    #             for keyword in keywords:
+    #                 if keyword.lower() in text:
+    #                     # 基礎否定詞檢查
+    #                     if "不" not in text and "沒有" not in text:
+    #                         df.at[index, code] = 1
+    #                         coded_count += 1
+    #                         break # 找到一個 code 的匹配就跳到下一個 code
     
-    print(f"🤖 自動預編碼完成，初步標記了 {coded_count} 處資訊點。")
+    # print(f"🤖 自動預編碼完成，初步標記了 {coded_count} 處資訊點。")
 
     # 6. (來自腳本二) 按 group_id 分組並儲存
     print(f"🔄 正在將預編碼的資料拆分為獨立的 Excel 工作表...")
     
-    base_cols = ['group_id', 'group_name', 'user_id', 'from', 'text', 'timestamp']
+    base_cols = ['group_id', 'group_name', 'timestamp','user_id', 'from', 'text', ]
     existing_base_cols = [col for col in base_cols if col in df.columns]
     
     # 最終輸出的欄位順序：基礎欄位 + 所有編碼欄位
