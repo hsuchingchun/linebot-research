@@ -40,35 +40,35 @@ CODEBOOK = {
     'U_Nancy_Mkt2': '豐富的國際差旅和商業諮詢經驗 (+)'
 }
 
-KEYWORD_MAP = {
-    'S_Amy_1': ['資歷長'],
-    'S_Amy_2': ['注重細節', '細節'],
-    'S_Amy_3': ['西洋棋'],
-    'S_Sally_1': ['演講者', '演講', '口才'],
-    'S_Sally_2': ['注重細節', '細節'],
-    'S_Sally_3': ['倫敦', '財務部門工作兩年'],
-    'S_Nancy_1': ['會計師', '證照'],
-    'S_Nancy_2': ['不記得表揚', '不會帶隊', '不會記得表揚同事'],
-    'S_Nancy_3': ['領導課程','領導'],
-    'U_Amy_HR1': ['遲到'],
-    'U_Amy_HR2': ['攝影'],
-    'U_Amy_Ops1': ['不是鼓舞人心', '演講者'], 
-    'U_Amy_Ops2': ['調解委員會'],
-    'U_Amy_Mkt1': ['冷漠', '不愛社交', '不社交'],
-    'U_Amy_Mkt2': ['領導課程','領導'],
-    'U_Sally_HR1': ['霸道'], 
-    'U_Sally_HR2': ['募捐'],
-    'U_Sally_Ops1': ['組織政治', '政治高手'],
-    'U_Sally_Ops2': ['志工', '財務長志工'],
-    'U_Sally_Mkt1': ['冷漠', '不愛社交', '不社交'], 
-    'U_Sally_Mkt2': ['股票'],
-    'U_Nancy_HR1': ['注重細節', '細節'],
-    'U_Nancy_HR2': ['公平'],
-    'U_Nancy_Ops1': ['組織政治', '洞察力'],
-    'U_Nancy_Ops2': ['審計'],
-    'U_Nancy_Mkt1': ['送別會'],
-    'U_Nancy_Mkt2': ['國際差旅', '商業諮詢', '國際視野'] 
-}
+# KEYWORD_MAP = {
+#     'S_Amy_1': ['資歷長'],
+#     'S_Amy_2': ['注重細節', '細節'],
+#     'S_Amy_3': ['西洋棋'],
+#     'S_Sally_1': ['演講者', '演講', '口才'],
+#     'S_Sally_2': ['注重細節', '細節'],
+#     'S_Sally_3': ['倫敦', '財務部門工作兩年'],
+#     'S_Nancy_1': ['會計師', '證照'],
+#     'S_Nancy_2': ['不記得表揚', '不會帶隊', '不會記得表揚同事'],
+#     'S_Nancy_3': ['領導課程','領導'],
+#     'U_Amy_HR1': ['遲到'],
+#     'U_Amy_HR2': ['攝影'],
+#     'U_Amy_Ops1': ['不是鼓舞人心', '演講者'], 
+#     'U_Amy_Ops2': ['調解委員會'],
+#     'U_Amy_Mkt1': ['冷漠', '不愛社交', '不社交'],
+#     'U_Amy_Mkt2': ['領導課程','領導'],
+#     'U_Sally_HR1': ['霸道'], 
+#     'U_Sally_HR2': ['募捐'],
+#     'U_Sally_Ops1': ['組織政治', '政治高手'],
+#     'U_Sally_Ops2': ['志工', '財務長志工'],
+#     'U_Sally_Mkt1': ['冷漠', '不愛社交', '不社交'], 
+#     'U_Sally_Mkt2': ['股票'],
+#     'U_Nancy_HR1': ['注重細節', '細節'],
+#     'U_Nancy_HR2': ['公平'],
+#     'U_Nancy_Ops1': ['組織政治', '洞察力'],
+#     'U_Nancy_Ops2': ['審計'],
+#     'U_Nancy_Mkt1': ['送別會'],
+#     'U_Nancy_Mkt2': ['國際差旅', '商業諮詢', '國際視野'] 
+# }
 
 def sanitize_filename(name):
     """
@@ -139,7 +139,7 @@ def create_precoded_worksheets():
     # 6. (來自腳本二) 按 group_id 分組並儲存
     print(f"🔄 正在將預編碼的資料拆分為獨立的 Excel 工作表...")
     
-    base_cols = ['group_id', 'group_name', 'timestamp','user_id', 'from', 'text', ]
+    base_cols = ['group_id', 'group_name', 'timestamp','user_id','position', 'from', 'text', ]
     existing_base_cols = [col for col in base_cols if col in df.columns]
     
     # 最終輸出的欄位順序：基礎欄位 + 所有編碼欄位

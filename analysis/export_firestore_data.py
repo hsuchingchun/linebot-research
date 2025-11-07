@@ -103,6 +103,19 @@ def flatten_data_for_csv(all_data):
         group_id = exp_data.get('group_id')
         bot_role = exp_data.get('bot_role')
         group_name = exp_data.get('group_name')
+
+        # ✨ 步驟一：建立一個 "user_id" 到 "position" 的查詢字典
+        # 我們從 votes 數據中提取這個對應關係
+        user_position_map = {}
+        for vote_record in exp_data.get('main_votes_data', []):
+            user_id = vote_record.get('user_id')
+            position = vote_record.get('position')
+            # 只需要儲存一次
+            if user_id and position and user_id not in user_position_map:
+                user_position_map[user_id] = position
+        
+        # ✨ (可選) 為 AI 也加上 "職位"
+        user_position_map['AI_ASSISTANT'] = 'AI_ASSISTANT'
         
         # 處理 votes
         for vote_record in exp_data.get('main_votes_data', []):
@@ -116,6 +129,11 @@ def flatten_data_for_csv(all_data):
             message_record['group_id'] = group_id # 加入關聯 ID
             message_record['bot_role'] = bot_role
             message_record['group_name'] = group_name
+
+            user_id = message_record.get('user_id')
+            position = user_position_map.get(user_id, 'Unknown_User') # 使用 .get() 避免錯誤
+            message_record['position'] = position
+
             all_messages.append(message_record)
             
         # 移除巢狀資料，準備主實驗表的數據
