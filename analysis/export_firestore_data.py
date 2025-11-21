@@ -44,6 +44,11 @@ except Exception as e:
     print(f"❌ Firebase 初始化失敗: {e}")
     exit()
 
+# 排除的 group id
+EXCLUDE_GROUP_IDS = {
+    "Cfa1a4c3762d93ee6015a3effc8d341cb",  
+    "C0e4a2d86d80661bb7cabd8cad6a4bc06", 
+}
 
 def export_all_experiments_data(db_client):
     """
@@ -53,10 +58,19 @@ def export_all_experiments_data(db_client):
     
     experiments_ref = db_client.collection('experiments')
     docs = experiments_ref.stream()
+
+    # ✨ 新增計數器，方便你確認
+    excluded_count = 0
+    processed_count = 0
     
     for doc in docs:
         group_id = doc.id
         experiment_data = doc.to_dict()
+
+        if group_id in EXCLUDE_GROUP_IDS:
+            print(f"🚫 [已排除] 正在跳過指定的 group_id: {group_id}")
+            excluded_count += 1
+            continue  # continue 會直接跳過這個 group_id，不執行後面的程
         
         # 處理時間戳記，轉換為字串以便 JSON 序列化
         for key, value in experiment_data.items():
@@ -64,7 +78,8 @@ def export_all_experiments_data(db_client):
                 experiment_data[key] = value.isoformat()
         
         print(f"正在處理組別: {group_id} (AI 角色: {experiment_data.get('bot_role')})...")
-        
+        processed_count += 1
+
         # 獲取 main_votes 子集合
         votes_ref = experiments_ref.document(group_id).collection('main_votes')
         votes_docs = votes_ref.stream()
@@ -90,6 +105,7 @@ def export_all_experiments_data(db_client):
         experiment_data['main_messages_data'] = messages_list
         
         all_experiments_data.append(experiment_data)
+
         
     return all_experiments_data
 
