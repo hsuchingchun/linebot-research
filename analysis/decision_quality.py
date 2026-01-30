@@ -14,11 +14,33 @@ def calculate_objective_metrics(row):
     # --- 指標 (一) 決策品質 ---
     
     initial_preference_code = 0
+    initial_majority_nancy = 0
+
+    # 初始化新變數：預設為 0 (無多數)
+    initial_consensus_type = 0
+
     initial_choices = [v.get('initial_choice') for v in votes if v.get('initial_choice')]
     if initial_choices:
         choice_counts = Counter(initial_choices)
         if choice_counts and choice_counts.most_common(1)[0][1] >= 2:
             initial_preference_code = 1
+
+             # --- 新指標計算邏輯 ---
+            majority_candidate = choice_counts.most_common(1)[0][0]
+            
+            if majority_candidate == 'Nancy':
+                initial_consensus_type = 1 # 多數選對 (Nancy)
+            else:
+                initial_consensus_type = -1 # 多數選錯 (Amy 或 Sally)
+        
+        # 如果沒有任何候選人 >= 2 票，initial_consensus_type 保持為 0 (無多數)
+
+        # 2. ✨ 新增計算：多數意見是否「特定為 Nancy」
+        # Counter['Nancy'] 如果不存在會回傳 0，所以這樣寫很安全
+        if choice_counts['Nancy'] >= 2:
+            initial_majority_nancy = 1
+
+       
             
     objective_quality_code = 0
     final_choices = {v.get('final_choice') for v in votes if v.get('final_choice')}
@@ -81,6 +103,8 @@ def calculate_objective_metrics(row):
     # --- 回傳所有指標 ---
     return pd.Series({
         'initial_preference': initial_preference_code,
+        'initial_consensus_type': initial_consensus_type, # ✨ 新指標 (0/1/2)
+        'initial_majority_nancy': initial_majority_nancy, # ✨ 記得在這裡回傳
         'objective_quality': objective_quality_code,
         'total_discussion_cycles': total_discussion_cycles,
         'consensus_ratio': consensus_ratio,
@@ -145,7 +169,9 @@ def main():
         'integration',
         'inquiry',
         'objective_quality',
-        'initial_preference',
+        'initial_preference', # 是否有共識 (0/1)
+        'initial_majority_nancy', # ✨ 是否共識為 Nancy (0/1)
+        'initial_consensus_type', # ✨ 新 (無多數0 / 錯多數1 / 對多數2)
         'total_discussion_time',        
         'total_discussion_cycles',      
         'final_decision_attempts',      
@@ -163,6 +189,10 @@ def main():
         output_df['objective_quality'] = output_df['objective_quality'].astype(int)
     if 'initial_preference' in output_df.columns:
         output_df['initial_preference'] = output_df['initial_preference'].astype(int)
+    if 'initial_majority_nancy' in output_df.columns:
+        output_df['initial_majority_nancy'] = output_df['initial_majority_nancy'].astype(int)
+    if 'initial_consensus_type' in output_df.columns:
+        output_df['initial_consensus_type'] = output_df['initial_consensus_type'].astype(int)
     if 'total_discussion_cycles' in output_df.columns:
         output_df['total_discussion_cycles'] = output_df['total_discussion_cycles'].astype(int)
 
